@@ -194,7 +194,9 @@ async def process_card_photo(message: Message, state: FSMContext):
 async def download_photo(bot: Bot, file_id: str) -> bytes:
     """Download photo bytes from Telegram."""
     file = await bot.get_file(file_id)
-    return await bot.download_file(file.file_path)
+    bytes_io = await bot.download_file(file.file_path)
+    bytes_io.seek(0)
+    return bytes_io.read()
 
 
 @router.message(Command("search"))
