@@ -4,8 +4,8 @@ import os
 from io import BytesIO
 from typing import Optional
 
-import google.generativeai as genai
-from PIL import Image
+import google.genai as genai
+from google.genai import types
 
 from prompts import PARSE_LEAD_PROMPT, PARSE_VISITING_CARD_PROMPT
 
@@ -15,9 +15,7 @@ class GeminiClient:
 
     def __init__(self, api_key: str):
         """Initialize the Gemini client with API key."""
-        genai.configure(api_key=api_key)
-        self.text_model = genai.GenerativeModel("gemini-1.5-flash")
-        self.vision_model = genai.GenerativeModel("gemini-1.5-flash")
+        self.client = genai.Client(api_key=api_key)
 
     def parse_lead_text(self, text: str) -> dict:
         """
@@ -29,8 +27,14 @@ class GeminiClient:
         Returns:
             Dictionary with parsed lead data
         """
-        response = self.text_model.generate_content(
-            [PARSE_LEAD_PROMPT, f"\n\nВходной текст для парсинга:\n{text}"]
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[
+                types.Content(
+                    role="user",
+                    parts=[types.Part(text=PARSE_LEAD_PROMPT + f"\n\nВходной текст для парсинга:\n{text}")]
+                )
+            ]
         )
         return self._parse_json_response(response.text)
 
@@ -45,14 +49,26 @@ class GeminiClient:
         Returns:
             Dictionary with parsed visiting card data
         """
-        image = Image.open(BytesIO(image_data))
-
         prompt = PARSE_VISITING_CARD_PROMPT
         if additional_text:
             prompt += f"\n\nДополнительная информация от пользователя:\n{additional_text}"
 
-        response = self.vision_model.generate_content(
-            [prompt, image]
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part(text=prompt),
+                        types.Part(
+                            inline_data=types.Blob(
+                                mime_type="image/jpeg",
+                                data=image_data
+                            )
+                        )
+                    ]
+                )
+            ]
         )
         return self._parse_json_response(response.text)
 
