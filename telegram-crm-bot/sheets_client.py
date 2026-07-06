@@ -29,10 +29,16 @@ class SheetsClient:
         Initialize the Google Sheets client.
 
         Args:
-            credentials_json: JSON string with service account credentials
+            credentials_json: JSON string with service account credentials, or path to JSON file
             spreadsheet_id: ID of the Google Spreadsheet
         """
-        credentials_dict = json.loads(credentials_json)
+        import os
+        
+        if os.path.isfile(credentials_json):
+            with open(credentials_json, 'r') as f:
+                credentials_dict = json.load(f)
+        else:
+            credentials_dict = json.loads(credentials_json)
         credentials = service_account.Credentials.from_service_account_info(
             credentials_dict,
             scopes=[
